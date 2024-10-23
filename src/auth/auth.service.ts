@@ -11,7 +11,7 @@ import { Role } from './roles/role.enum';
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
-    private jwtService: JwtService
+    private jwtService: JwtService, // Ensure JwtService is injected
   ) {}
 
   async signUp(username: string, password: string, roles: Role[] = [Role.User]) {
