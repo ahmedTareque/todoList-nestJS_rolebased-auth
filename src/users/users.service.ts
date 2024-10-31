@@ -1,17 +1,26 @@
-// src/users/users.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './schemas/users.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { SequenceService } from 'src/sequence/sequence.service';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    private readonly sequenceService: SequenceService, // Inject SequenceService
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const newUser = new this.userModel(createUserDto);
+    const userId = await this.sequenceService.getNextSequence('userId'); // Get the next userId
+    console.log("createUserDto ==== ", createUserDto)
+    debugger;
+    const newUser = new this.userModel({
+      ...createUserDto,
+      userId, // Set the incremented userId
+    });
     return newUser.save();
   }
 
@@ -19,24 +28,32 @@ export class UsersService {
     return this.userModel.find().exec();
   }
 
-  async findById(id: string): Promise<User | null> {
-    return this.userModel.findById(id).exec();
+  async findById(userId: number): Promise<User | null> {
+    return this.userModel.findOne({ userId }).exec();
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const updatedUser = await this.userModel.findByIdAndUpdate(id, updateUserDto, {
-      new: true,
-    });
+  async update(userId: number, updateUserDto: UpdateUserDto): Promise<User> {
+    const updatedUser = await this.userModel.findOneAndUpdate(
+      { userId },
+      updateUserDto,
+      { new: true },
+    );
     if (!updatedUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException(`User with ID ${userId} not found`);
     }
     return updatedUser;
   }
 
-  async delete(id: string): Promise<void> {
-    const result = await this.userModel.findByIdAndDelete(id).exec();
+  async delete(userId: number): Promise<void> {
+    const result = await this.userModel.findOneAndDelete({ userId }).exec();
     if (!result) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException(`User with ID ${userId} not found`);
     }
   }
+  
+  async deleteAllUser(): Promise<{ deletedCount: number }> {
+    const result = await this.userModel.deleteMany({}).exec();
+    return { deletedCount: result.deletedCount || 0 };
+  }
 }
+

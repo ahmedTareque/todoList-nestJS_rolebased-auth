@@ -1,4 +1,3 @@
-// src/users/dto/update-user.dto.ts
 import { IsString, IsEmail, IsOptional, IsEnum } from 'class-validator';
 import { Role } from 'src/common/roles/role.enum';
 
